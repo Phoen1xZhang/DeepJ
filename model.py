@@ -3,7 +3,8 @@ import tensorflow as tf
 from keras.layers import Input, LSTM, Dense, Dropout, Lambda, Reshape, Permute
 from keras.layers import TimeDistributed, RepeatVector, Conv1D, Activation
 from keras.layers import Embedding, Flatten
-from keras.layers.merge import Concatenate, Add
+from keras.layers import Concatenate, Add
+# from keras.layers.merge import Concatenate, Add
 from keras.models import Model
 import keras.backend as K
 from keras import losses

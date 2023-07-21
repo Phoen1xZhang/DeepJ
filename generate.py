@@ -127,7 +127,7 @@ def write_file(name, results):
     results = zip(*list(results))
 
     for i, result in enumerate(results):
-        fpath = os.path.join(SAMPLES_DIR, name + '_' + str(i) + '.mid')
+        fpath = os.path.join('output/sample', name + '_' + str(i) + '.mid')
         print('Writing file', fpath)
         os.makedirs(os.path.dirname(fpath), exist_ok=True)
         mf = midi_encode(unclamp_midi(result))

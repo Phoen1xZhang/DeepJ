@@ -16,7 +16,7 @@ def build_or_load(allow_load=True):
     models[0].summary()
     if allow_load:
         try:
-            models[0].load_weights(MODEL_FILE)
+            models[0].load_weights('archives/v1/model.h5')
             print('Loaded model from file.')
         except:
             print('Unable to load model from file.')

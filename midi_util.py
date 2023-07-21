@@ -5,6 +5,8 @@ import midi
 import numpy as np
 import os
 from constants import *
+import mido
+
 
 def midi_encode(note_seq, resolution=NOTES_PER_BEAT, step=1):
     """
@@ -94,20 +96,21 @@ def midi_encode(note_seq, resolution=NOTES_PER_BEAT, step=1):
 
     return pattern
 
-def midi_decode(pattern,
+def midi_decode(midi_file,
                 classes=MIDI_MAX_NOTES,
                 step=None):
     """
     Takes a MIDI pattern and decodes it into a piano roll.
     """
     if step is None:
-        step = pattern.resolution // NOTES_PER_BEAT
+        # step = midi_file.resolution // NOTES_PER_BEAT
+        step = 220//NOTES_PER_BEAT
 
     # Extract all tracks at highest resolution
     merged_replay = None
     merged_volume = None
 
-    for track in pattern:
+    for track in midi_file.tracks:
         # The downsampled sequences
         replay_sequence = []
         volume_sequence = []
@@ -116,9 +119,9 @@ def midi_decode(pattern,
         replay_buffer = [np.zeros((classes,))]
         volume_buffer = [np.zeros((classes,))]
 
-        for i, event in enumerate(track):
+        for i, message in enumerate(track):
             # Duplicate the last note pattern to wait for next event
-            for _ in range(event.tick):
+            for _ in range(message.time):
                 replay_buffer.append(np.zeros(classes))
                 volume_buffer.append(np.copy(volume_buffer[-1]))
 
@@ -136,12 +139,14 @@ def midi_decode(pattern,
                     replay_buffer = replay_buffer[-1:]
                     volume_buffer = volume_buffer[-1:]
 
-            if isinstance(event, midi.EndOfTrackEvent):
+            if message.type=='end_of_track':
                 break
 
             # Modify the last note pattern
-            if isinstance(event, midi.NoteOnEvent):
-                pitch, velocity = event.data
+            if message.type=='note_on':
+                # pitch, velocity = message.data
+                pitch=message.note
+                velocity=message.velocity
                 volume_buffer[-1][pitch] = velocity / MAX_VELOCITY
 
                 # Check for replay_buffer, which is true if the current note was previously played and needs to be replayed
@@ -150,8 +155,10 @@ def midi_decode(pattern,
                     # Override current volume with previous volume
                     volume_buffer[-1][pitch] = volume_buffer[-2][pitch]
 
-            if isinstance(event, midi.NoteOffEvent):
-                pitch, velocity = event.data
+            if message.type=='note_off':
+                pitch=message.note
+                velocity=message.velocity
+                # pitch, velocity = message.data
                 volume_buffer[-1][pitch] = 0
 
         # Add the remaining
@@ -191,16 +198,18 @@ def midi_decode(pattern,
     return merged
 
 def load_midi(fname):
-    p = midi.read_midifile(fname)
-    cache_path = os.path.join(CACHE_DIR, fname + '.npy')
-    try:
-        note_seq = np.load(cache_path)
-    except Exception as e:
-        # Perform caching
-        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    # p = midi.read_midifile(fname)
+    # cache_path = os.path.join(CACHE_DIR, fname + '.npy')
+    # try:
+    #     note_seq = np.load(cache_path)
+    # except Exception as e:
+    #     # Perform caching
+    #     os.makedirs(os.path.dirname(cache_path), exist_ok=True)
 
-        note_seq = midi_decode(p)
-        np.save(cache_path, note_seq)
+    #     note_seq = midi_decode(p)
+    #     np.save(cache_path, note_seq)
+    midi_file=mido.MidiFile(fname)
+    note_seq=midi_decode(midi_file)
 
     assert len(note_seq.shape) == 3, note_seq.shape
     assert note_seq.shape[1] == MIDI_MAX_NOTES, note_seq.shape
@@ -212,6 +221,8 @@ def load_midi(fname):
 if __name__ == '__main__':
     # Test
     # p = midi.read_midifile("out/test_in.mid")
-    p = midi.read_midifile("out/test_in.mid")
-    p = midi_encode(midi_decode(p))
-    midi.write_midifile("out/test_out.mid", p)
+    # p = midi.read_midifile("out/test_in.mid")
+    # p = midi_encode(midi_decode(p))
+    # midi.write_midifile("out/test_out.mid", p)
+    p=load_midi("data/baroque/bach/Bach, Johann Sebastian, Duetto No.1 in E minor, BWV 802, XJDb00Go7vE.mid")
+    print(p)
